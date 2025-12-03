@@ -362,7 +362,7 @@
               Date<span class="required">*</span>
             </label>
             <div class="input-wrapper">
-              <input id="date" name="date" type="date" />
+              <input id="date" name="date" type="text" placeholder="dd-mm-yyyy" inputmode="numeric" />
             </div>
           </div>
         </div>
@@ -373,12 +373,13 @@
             <label>Trip Dates<span class="required">*</span></label>
             <div style="display:flex; gap:8px;">
               <div class="input-wrapper" style="flex:1;">
-                <input id="tripStart" name="tripStart" type="date" placeholder="Start" />
+                <input id="tripStart" name="tripStart" type="text" placeholder="Start date (dd-mm-yyyy)" inputmode="numeric" />
               </div>
               <div class="input-wrapper" style="flex:1;">
-                <input id="tripEnd" name="tripEnd" type="date" placeholder="End" />
+                <input id="tripEnd" name="tripEnd" type="text" placeholder="End date (dd-mm-yyyy)" inputmode="numeric" />
               </div>
             </div>
+            <p id="tripDuration" class="muted-text"></p>
           </div>
           <div class="field-group">
             <label for="destination">Destination / Route</label>
@@ -427,6 +428,36 @@
               <input id="total" name="total" type="number" readonly value="0.00" />
             </div>
           </div>
+
+          <!-- Advance Taken -->
+          <div class="field-group">
+            <label for="advance">Advance Taken (₹) (optional)</label>
+            <div class="input-wrapper">
+              <input id="advance" name="advance" type="number" min="0" step="0.01" placeholder="0.00" />
+            </div>
+          </div>
+
+          <!-- Net Payable -->
+          <div class="field-group">
+            <label for="netPayable">Net Payable (₹)</label>
+            <div class="input-wrapper">
+              <input id="netPayable" name="netPayable" type="number" readonly value="0.00" />
+            </div>
+          </div>
+        </div>
+        </div>
+
+        <!-- Remarks for Approver -->
+        <div class="field-group">
+          <label for="remarks">Remarks for Approver (optional)</label>
+          <div class="input-wrapper">
+            <input
+              id="remarks"
+              name="remarks"
+              type="text"
+              placeholder="Any additional notes for the approver"
+            />
+          </div>
         </div>
 
         <div class="modal-footer">
@@ -452,6 +483,13 @@
     const singleDaySection = document.getElementById("singleDaySection");
     const tripSection = document.getElementById("tripSection");
 
+    const advanceInput = document.getElementById("advance");
+    const netPayableInput = document.getElementById("netPayable");
+    const tripStartInput = document.getElementById("tripStart");
+    const tripEndInput = document.getElementById("tripEnd");
+    const tripDurationText = document.getElementById("tripDuration");
+    const reasonInput = document.getElementById("reason");
+
     let expenseId = 0;
 
     function setClaimType(type) {
@@ -467,6 +505,66 @@
         singleDayBtn.classList.remove("active");
         singleDaySection.style.display = "none";
         tripSection.style.display = "block";
+      }
+
+      if (singleDayBtn.addEventListener("click", () => setClaimType("single"));
+    tripBtn.addEventListener("click", () => setClaimType("trip"));
+
+    function parseDMY(value) {
+      if (!value) return null;
+      const parts = value.split("-");
+      if (parts.length !== 3) return null;
+      const [dd, mm, yyyy] = parts.map(part => parseInt(part, 10));
+      if (!dd || !mm || !yyyy) return null;
+      return new Date(yyyy, mm - 1, dd);
+    }
+
+    function updateTripDuration() {
+      if (!tripDurationText || !tripStartInput || !tripEndInput) return;
+
+      const start = parseDMY(tripStartInput.value.trim());
+      const end = parseDMY(tripEndInput.value.trim());
+
+      tripDurationText.textContent = "";
+      tripDurationText.style.color = "#9ca3af";
+
+      if (!start || !end) return;
+
+      const diffMs = end - start;
+      const dayMs = 24 * 60 * 60 * 1000;
+
+      if (diffMs < 0) {
+        tripDurationText.textContent = "End date cannot be before start date.";
+        tripDurationText.style.color = "#ef4444";
+        return;
+      }
+
+      const days = Math.round(diffMs / dayMs) + 1;
+      tripDurationText.textContent =
+        days === 1 ? "Trip duration: 1 day" : `Trip duration: ${days} days`;
+      tripDurationText.style.color = "#9ca3af";
+    }
+
+    if (tripStartInput && tripEndInput) {
+      tripStartInput.addEventListener("input", updateTripDuration);
+      tripEndInput.addEventListener("input", updateTripDuration);
+    }
+
+    function updateNetPayable() {
+      const total = parseFloat(totalInput.value) || 0;
+      const advance = advanceInput ? parseFloat(advanceInput.value) || 0 : 0;
+      const net = total - advance;
+      if (netPayableInput) {
+        netPayableInput.value = net.toFixed(2);
+      }
+    }
+
+    if (advanceInput) {
+      advanceInput.addEventListener("input", updateNetPayable);
+    }
+
+    singleDayBtn.addEventListenerocal client visit"
+            : "e.g. 3-day client meeting in Delhi";
       }
     }
 
@@ -528,6 +626,7 @@
         if (!isNaN(value)) sum += value;
       });
       totalInput.value = sum.toFixed(2);
+      updateNetPayable();
     }
 
     form.addEventListener("submit", (e) => {
@@ -553,6 +652,9 @@
       form.reset();
       expensesList.innerHTML = "";
       totalInput.value = "0.00";
+      if (advanceInput) advanceInput.value = "";
+      if (netPayableInput) netPayableInput.value = "0.00";
+      if (tripDurationText) tripDurationText.textContent = "";
       setClaimType("single");
       expenseId = 0;
       addExpenseRow();
