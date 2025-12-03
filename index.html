@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>New Claim Request</title>
+  <title>Employee Claim Request</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,7 +47,7 @@
 
     .modal {
       width: 100%;
-      max-width: 480px;
+      max-width: 520px;
       background: rgba(255, 255, 255, 0.92);
       border-radius: 18px;
       box-shadow:
@@ -141,6 +141,52 @@
 
     input[type="date"]::-webkit-calendar-picker-indicator {
       cursor: pointer;
+    }
+
+    /* Claim type toggle */
+    .claim-type-toggle {
+      display: inline-flex;
+      padding: 3px;
+      border-radius: 999px;
+      background: #f3f4f6;
+      box-shadow: inset 0 0 0 1px rgba(209, 213, 219, 0.8);
+      gap: 2px;
+      width: fit-content;
+    }
+
+    .claim-type-button {
+      border: none;
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      background: transparent;
+      color: #6b7280;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .claim-type-button.active {
+      background: white;
+      color: #4f46e5;
+      box-shadow: 0 1px 4px rgba(148, 163, 184, 0.5);
+    }
+
+    .claim-type-label {
+      font-size: 0.78rem;
+      color: #4b5563;
+    }
+
+    .type-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .type-row small {
+      font-size: 0.72rem;
+      color: #9ca3af;
     }
 
     /* Expenses section */
@@ -261,6 +307,12 @@
       .expense-row input.exp-amt  { grid-area: amount; }
       .expense-row button         { grid-area: remove; justify-self: end; }
     }
+
+    .muted-text {
+      font-size: 0.74rem;
+      color: #9ca3af;
+      margin-top: -2px;
+    }
   </style>
 </head>
 <body>
@@ -274,25 +326,77 @@
       </div>
 
       <form id="claimForm">
-        <!-- Date -->
+        <!-- Claim type selector -->
         <div class="field-group">
-          <label for="date">
-            Date<span class="required">*</span>
-          </label>
-          <div class="input-wrapper">
-            <input
-              id="date"
-              name="date"
-              type="date"
-              required
-            />
+          <div class="type-row">
+            <label>Claim Type<span class="required">*</span></label>
+            <div class="claim-type-toggle" role="tablist">
+              <button
+                type="button"
+                class="claim-type-button active"
+                id="singleDayBtn"
+                data-type="single"
+              >
+                Single Day
+              </button>
+              <button
+                type="button"
+                class="claim-type-button"
+                id="tripBtn"
+                data-type="trip"
+              >
+                Trip (Multi‑Day)
+              </button>
+            </div>
+          </div>
+          <p class="muted-text">
+            Single day: one date only. Trip: travelling over multiple days.
+          </p>
+          <input type="hidden" name="claimType" id="claimType" value="single" />
+        </div>
+
+        <!-- Single-day section -->
+        <div id="singleDaySection">
+          <div class="field-group">
+            <label for="date">
+              Date<span class="required">*</span>
+            </label>
+            <div class="input-wrapper">
+              <input id="date" name="date" type="date" />
+            </div>
           </div>
         </div>
 
-        <!-- Reason (overall description) -->
+        <!-- Trip section -->
+        <div id="tripSection" style="display:none;">
+          <div class="field-group">
+            <label>Trip Dates<span class="required">*</span></label>
+            <div style="display:flex; gap:8px;">
+              <div class="input-wrapper" style="flex:1;">
+                <input id="tripStart" name="tripStart" type="date" placeholder="Start" />
+              </div>
+              <div class="input-wrapper" style="flex:1;">
+                <input id="tripEnd" name="tripEnd" type="date" placeholder="End" />
+              </div>
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="destination">Destination / Route</label>
+            <div class="input-wrapper">
+              <input
+                id="destination"
+                name="destination"
+                type="text"
+                placeholder="e.g. Kolkata → Delhi → Kolkata"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Common reason -->
         <div class="field-group">
           <label for="reason">
-            Reason / Trip Description<span class="required">*</span>
+            Reason / Purpose<span class="required">*</span>
           </label>
           <div class="input-wrapper">
             <input
@@ -300,20 +404,17 @@
               name="reason"
               type="text"
               placeholder="e.g. Travelling for client meeting"
-              required
             />
           </div>
         </div>
 
-        <!-- Nested Expenses -->
+        <!-- Nested expenses -->
         <div class="field-group">
           <div class="expenses-header">
             <label>Expense Details (optional)</label>
           </div>
 
-          <div id="expensesList" class="expenses-list">
-            <!-- rows will be added here -->
-          </div>
+          <div id="expensesList" class="expenses-list"></div>
 
           <button type="button" class="add-expense-btn" onclick="addExpenseRow()">
             <span>＋</span> Add Expense
@@ -328,7 +429,6 @@
           </div>
         </div>
 
-        <!-- Buttons -->
         <div class="modal-footer">
           <button class="btn btn-secondary" type="button" onclick="resetForm()">
             Cancel
@@ -345,8 +445,33 @@
     const form = document.getElementById("claimForm");
     const expensesList = document.getElementById("expensesList");
     const totalInput = document.getElementById("total");
+    const claimTypeInput = document.getElementById("claimType");
+
+    const singleDayBtn = document.getElementById("singleDayBtn");
+    const tripBtn = document.getElementById("tripBtn");
+    const singleDaySection = document.getElementById("singleDaySection");
+    const tripSection = document.getElementById("tripSection");
 
     let expenseId = 0;
+
+    function setClaimType(type) {
+      claimTypeInput.value = type;
+
+      if (type === "single") {
+        singleDayBtn.classList.add("active");
+        tripBtn.classList.remove("active");
+        singleDaySection.style.display = "block";
+        tripSection.style.display = "none";
+      } else {
+        tripBtn.classList.add("active");
+        singleDayBtn.classList.remove("active");
+        singleDaySection.style.display = "none";
+        tripSection.style.display = "block";
+      }
+    }
+
+    singleDayBtn.addEventListener("click", () => setClaimType("single"));
+    tripBtn.addEventListener("click", () => setClaimType("trip"));
 
     function createExpenseRow(id) {
       const row = document.createElement("div");
@@ -375,12 +500,9 @@
           step="0.01"
           placeholder="0.00"
         />
-        <button type="button" class="expense-remove" title="Remove">
-          ✕
-        </button>
+        <button type="button" class="expense-remove" title="Remove">✕</button>
       `;
 
-      // Attach listeners
       const amountInput = row.querySelector(".exp-amt");
       amountInput.addEventListener("input", updateTotal);
 
@@ -410,32 +532,33 @@
 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-
       const data = new FormData(form);
       const entries = Object.fromEntries(data.entries());
 
-      // You can send `entries` to your backend; for now we just show it.
       alert(
-        "Claim Submitted! (demo)\n\n" +
-        "Date: " + entries.date + "\n" +
-        "Reason: " + entries.reason + "\n" +
-        "Total: ₹" + entries.total + "\n\n" +
-        "Check console for full payload."
+        `Claim Submitted! (demo)\n\n` +
+        `Type: ${entries.claimType === "trip" ? "Trip" : "Single Day"}\n` +
+        (entries.claimType === "single"
+          ? `Date: ${entries.date || "-"}\n`
+          : `Trip: ${entries.tripStart || "-"} → ${entries.tripEnd || "-"}\n`) +
+        `Reason: ${entries.reason || "-"}\n` +
+        `Total: ₹${entries.total || "0.00"}`
       );
 
       console.log("Form payload:", entries);
-      form.reset();
-      expensesList.innerHTML = "";
-      totalInput.value = "0.00";
+      resetForm();
     });
 
     function resetForm() {
       form.reset();
       expensesList.innerHTML = "";
       totalInput.value = "0.00";
+      setClaimType("single");
+      expenseId = 0;
+      addExpenseRow();
     }
 
-    // Optional: start with one empty expense row
+    // Initialize
     addExpenseRow();
   </script>
 </body>
