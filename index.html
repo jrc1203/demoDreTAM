@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>New Claim Request</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Optional: Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 10% 20%, #b4b0ff 0, transparent 55%),
+                  radial-gradient(circle at 90% 80%, #c27aff 0, transparent 55%),
+                  #f2f3f7;
+      overflow: hidden;
+    }
+
+    /* Soft blur layer like your screenshot */
+    .bg-blur {
+      position: fixed;
+      inset: 0;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .modal-wrapper {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 24px;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 440px;
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 18px;
+      box-shadow:
+        0 22px 45px rgba(15, 23, 42, 0.18),
+        0 0 0 1px rgba(148, 163, 184, 0.08);
+      padding: 22px 26px 20px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .close-btn {
+      border: none;
+      background: transparent;
+      font-size: 1.1rem;
+      cursor: pointer;
+      color: #6b7280;
+      padding: 4px;
+      border-radius: 999px;
+      line-height: 1;
+    }
+
+    .close-btn:hover {
+      background: rgba(148, 163, 184, 0.18);
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: #4b5563;
+    }
+
+    label .required {
+      color: #ef4444;
+      margin-left: 2px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"] {
+      width: 100%;
+      padding: 9px 11px;
+      border-radius: 9px;
+      border: 1px solid #e5e7eb;
+      font-size: 0.9rem;
+      color: #111827;
+      outline: none;
+      background: #f9fafb;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease,
+                  background-color 0.15s ease;
+    }
+
+    input::placeholder {
+      color: #9ca3af;
+    }
+
+    input:focus {
+      border-color: #a855f7;
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.25);
+    }
+
+    /* Calendar icon visual – optional; using native date picker */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s ease;
+      white-space: nowrap;
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #4b5563;
+      box-shadow: 0 0 0 1px rgba(156, 163, 175, 0.4);
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #a855f7, #6366f1);
+      color: #ffffff;
+      box-shadow: 0 12px 20px rgba(79, 70, 229, 0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 24px rgba(79, 70, 229, 0.45);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    @media (max-width: 480px) {
+      .modal {
+        padding: 18px 16px 16px;
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-blur"></div>
+
+  <div class="modal-wrapper">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">New Claim Request</h2>
+        <button class="close-btn" type="button" onclick="resetForm()">✕</button>
+      </div>
+
+      <form id="claimForm">
+        <!-- Date -->
+        <div class="field-group">
+          <label for="date">
+            Date<span class="required">*</span>
+          </label>
+          <div class="input-wrapper">
+            <input
+              id="date"
+              name="date"
+              type="date"
+              placeholder="dd-mm-yyyy"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="field-group">
+          <label for="description">
+            Description<span class="required">*</span>
+          </label>
+          <div class="input-wrapper">
+            <input
+              id="description"
+              name="description"
+              type="text"
+              placeholder="e.g. Client Dinner"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Amount -->
+        <div class="field-group">
+          <label for="amount">
+            Amount (&#8377;)<span class="required">*</span>
+          </label>
+          <div class="input-wrapper">
+            <input
+              id="amount"
+              name="amount"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" onclick="resetForm()">
+            Cancel
+          </button>
+          <button class="btn btn-primary" type="submit">
+            Submit Claim
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("claimForm");
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const data = new FormData(form);
+      const values = Object.fromEntries(data.entries());
+      alert(
+        "Claim Submitted!\\n\\n" +
+        "Date: " + values.date + "\\n" +
+        "Description: " + values.description + "\\n" +
+        "Amount: ₹" + values.amount
+      );
+      form.reset();
+    });
+
+    function resetForm() {
+      form.reset();
+    }
+  </script>
+</body>
+</html>
