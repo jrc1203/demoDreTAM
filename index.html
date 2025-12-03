@@ -25,7 +25,8 @@
       background: radial-gradient(circle at 10% 20%, #b4b0ff 0, transparent 55%),
                   radial-gradient(circle at 90% 80%, #c27aff 0, transparent 55%),
                   #f2f3f7;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
     .bg-blur {
@@ -362,7 +363,7 @@
               Date<span class="required">*</span>
             </label>
             <div class="input-wrapper">
-              <input id="date" name="date" type="text" placeholder="dd-mm-yyyy" inputmode="numeric" />
+              <input id="date" name="date" type="date" />
             </div>
           </div>
         </div>
@@ -370,27 +371,17 @@
         <!-- Trip section -->
         <div id="tripSection" style="display:none;">
           <div class="field-group">
-            <label>Trip Dates<span class="required">*</span></label>
+            <label>Trip Dates<span class=\"required\">*</span></label>
+            <span class="muted-text">Start date → End date (use the calendar picker)</span>
             <div style="display:flex; gap:8px;">
               <div class="input-wrapper" style="flex:1;">
-                <input id="tripStart" name="tripStart" type="text" placeholder="Start date (dd-mm-yyyy)" inputmode="numeric" />
+                <input id="tripStart" name="tripStart" type="date" />
               </div>
               <div class="input-wrapper" style="flex:1;">
-                <input id="tripEnd" name="tripEnd" type="text" placeholder="End date (dd-mm-yyyy)" inputmode="numeric" />
+                <input id="tripEnd" name="tripEnd" type="date" />
               </div>
             </div>
             <p id="tripDuration" class="muted-text"></p>
-          </div>
-          <div class="field-group">
-            <label for="destination">Destination / Route</label>
-            <div class="input-wrapper">
-              <input
-                id="destination"
-                name="destination"
-                type="text"
-                placeholder="e.g. Kolkata → Delhi → Kolkata"
-              />
-            </div>
           </div>
         </div>
 
@@ -405,6 +396,19 @@
               name="reason"
               type="text"
               placeholder="e.g. Travelling for client meeting"
+            />
+          </div>
+        </div>
+
+        <!-- Destination / Route (shown for both types) -->
+        <div class="field-group">
+          <label for="destination">Destination / Route</label>
+          <div class="input-wrapper">
+            <input
+              id="destination"
+              name="destination"
+              type="text"
+              placeholder="e.g. Kolkata → Delhi → Kolkata (flight + cab)"
             />
           </div>
         </div>
@@ -429,22 +433,23 @@
             </div>
           </div>
 
-          <!-- Advance Taken -->
-          <div class="field-group">
-            <label for="advance">Advance Taken (₹) (optional)</label>
-            <div class="input-wrapper">
-              <input id="advance" name="advance" type="number" min="0" step="0.01" placeholder="0.00" />
+          <div id="tripFinanceSection">
+            <!-- Advance Taken -->
+            <div class="field-group">
+              <label for="advance">Advance Taken (₹) (optional)</label>
+              <div class="input-wrapper">
+                <input id="advance" name="advance" type="number" min="0" step="0.01" placeholder="0.00" />
+              </div>
             </div>
-          </div>
 
-          <!-- Net Payable -->
-          <div class="field-group">
-            <label for="netPayable">Net Payable (₹)</label>
-            <div class="input-wrapper">
-              <input id="netPayable" name="netPayable" type="number" readonly value="0.00" />
+            <!-- Net Payable -->
+            <div class="field-group">
+              <label for="netPayable">Net Payable (₹)</label>
+              <div class="input-wrapper">
+                <input id="netPayable" name="netPayable" type="number" readonly value="0.00" />
+              </div>
             </div>
           </div>
-        </div>
         </div>
 
         <!-- Remarks for Approver -->
@@ -483,6 +488,8 @@
     const singleDaySection = document.getElementById("singleDaySection");
     const tripSection = document.getElementById("tripSection");
 
+    const tripFinanceSection = document.getElementById("tripFinanceSection");
+
     const advanceInput = document.getElementById("advance");
     const netPayableInput = document.getElementById("netPayable");
     const tripStartInput = document.getElementById("tripStart");
@@ -500,23 +507,31 @@
         tripBtn.classList.remove("active");
         singleDaySection.style.display = "block";
         tripSection.style.display = "none";
+        if (tripFinanceSection) tripFinanceSection.style.display = "none";
       } else {
         tripBtn.classList.add("active");
         singleDayBtn.classList.remove("active");
         singleDaySection.style.display = "none";
         tripSection.style.display = "block";
+        if (tripFinanceSection) tripFinanceSection.style.display = "block";
       }
 
-      if (singleDayBtn.addEventListener("click", () => setClaimType("single"));
+      if (reasonInput) {
+        reasonInput.placeholder =
+          type === "single"
+            ? "e.g. Local client visit"
+            : "e.g. 3-day client meeting in Delhi";
+      }
+    }
+
+    singleDayBtn.addEventListener("click", () => setClaimType("single"));
     tripBtn.addEventListener("click", () => setClaimType("trip"));
 
     function parseDMY(value) {
       if (!value) return null;
-      const parts = value.split("-");
-      if (parts.length !== 3) return null;
-      const [dd, mm, yyyy] = parts.map(part => parseInt(part, 10));
-      if (!dd || !mm || !yyyy) return null;
-      return new Date(yyyy, mm - 1, dd);
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return null;
+      return d;
     }
 
     function updateTripDuration() {
@@ -525,7 +540,7 @@
       const start = parseDMY(tripStartInput.value.trim());
       const end = parseDMY(tripEndInput.value.trim());
 
-      tripDurationText.textContent = "";
+      tripDurationText.textContent = "Start date → End date (use the calendar picker)";
       tripDurationText.style.color = "#9ca3af";
 
       if (!start || !end) return;
@@ -563,13 +578,7 @@
       advanceInput.addEventListener("input", updateNetPayable);
     }
 
-    singleDayBtn.addEventListenerocal client visit"
-            : "e.g. 3-day client meeting in Delhi";
-      }
-    }
-
-    singleDayBtn.addEventListener("click", () => setClaimType("single"));
-    tripBtn.addEventListener("click", () => setClaimType("trip"));
+    
 
     function createExpenseRow(id) {
       const row = document.createElement("div");
@@ -662,6 +671,7 @@
 
     // Initialize
     addExpenseRow();
+    setClaimType("single");
   </script>
 </body>
 </html>
